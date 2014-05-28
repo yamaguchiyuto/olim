@@ -48,6 +48,7 @@ class Quadtree:
         if division_left == 0 or area.number_of_points() <= maxpoints:
             """ areaに含まれるデータ点の数がmaxpointsを超えていなければ分割終了 """
             area.set_fixed(self.sequential_id)
+            area.calc_center() # areaに属すデータ点のセントロイドを計算
             self.leaves[self.sequential_id] = area
             self.sequential_id += 1
             return area
@@ -77,6 +78,17 @@ class Area:
         1 3
         """
         self.children = [None,None,None,None]
+
+    def calc_center(self):
+        if self.number_of_points() == 0:
+            self.center = (self.x1 + (self.x2-self.x1)/2, self.y1 + (self.y2-self.y1)/2)
+        else:
+            sumx = 0.
+            sumy = 0.
+            for p in self.points_:
+                sumx += p[0]
+                sumy += p[1]
+            self.center = (sumx/len(self.points_), sumy/len(self.points_))
 
     def append(self, p):
         """ 領域にデータ点を追加 """
@@ -151,7 +163,7 @@ if __name__ == '__main__':
 
     """ 結果 """
     for a in qtree:
-        print a.aid,a.x1,a.y1,a.x2,a.y2,a.points()
+        print a.aid,a.x1,a.y1,a.x2,a.y2,a.center
 
     p = (0.37,0.55)
     print p,qtree.get_area_id(p)
