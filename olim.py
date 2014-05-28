@@ -163,7 +163,7 @@ class OLIM:
         population = {}
         for a in qtree:
             i = a.aid
-            population[i] = float(a.number_of_points) / self.number_of_users()
+            population[i] = float(a.number_of_points()) / self.number_of_users()
         return population
 
     def updateKL(self, user, l, words):
