@@ -50,7 +50,7 @@ class WordDistribution:
             return self.values[w]
         else:
             return None
-    
+
     def inc(self,w,l):
         if w in self.values:
             if l in self.values[w]:
@@ -188,7 +188,7 @@ class OLIM:
             if self.window.count(w) == self.params['N']:
                 if self.kl.get(w) > dmin:
                     """ if kl value larger than threshold """
-                    if current_time - self.kl.oldest_time[w] < self.params['window_th']:
+                    if current_time - self.window.oldest_time[w] < self.params['window_th']:
                         """ if not too long window """
                         self.ud.update(user['id'], self.wd.get(w))
 
