@@ -2,27 +2,23 @@
 import sys
 
 class Quadtree:
-    def __init__(self,data,x1,y1,x2,y2):
+    def __init__(self,data,x1,y1,x2,y2,maxpoints,maxdivision):
         self.data = data
-        self.areas = self.init_area(data,x1,y1,x2,y2)
-        self.assign = self.init_assign(data)
+        self.sequential_id = 0
+        self.leaves = {}
+        self.root = self.divide(self.init_area(data,x1,y1,x2,y2),maxpoints,maxdivision)
 
-    def init_assign(self,data):
-        assign = {}
-        for uid in data:
-            assign[uid] = -1
-        return assign
+    def __iter__(self):
+        for aid in self.leaves:
+            yield self.leaves[aid]
 
     def init_area(self,data,x1,y1,x2,y2):
-        initial = Area(x1,y1,x2,y2,0)
-        for uid in data:
-            initial.append(data[uid])
-        return [initial]
+        initial = Area(x1,y1,x2,y2)
+        for d in data:
+            initial.append(d)
+        return initial
 
-    def covered(self,uid):
-        return self.assign[uid]
-
-    def divide(self,area,level):
+    def subdivide(self,area):
         division = []
 
         """ 分割後の各辺の長さ """
@@ -32,7 +28,12 @@ class Quadtree:
         """ 分割後の領域を生成 """
         for dx in [0,1]:
             for dy in [0,1]:
-                sub_area = Area(area.x1+dx*xl, area.y1+dy*yl, area.x1+(1+dx)*xl, area.y1+(1+dy)*yl,level)
+                """
+                0 2
+                1 3
+                の順番
+                """
+                sub_area = Area(area.x1+dx*xl, area.y1+dy*yl, area.x1+(1+dx)*xl, area.y1+(1+dy)*yl)
                 division.append(sub_area)
 
         """ 分割前の領域に属すデータ点を分割後の領域にアサイン """
@@ -44,46 +45,40 @@ class Quadtree:
 
         return division
 
-    def quadtree(self, maxpoints, maxdivision):
-        """ 引数で与えられたmaxdivision回だけ分割を繰り返す """
-        for n in range(maxdivision):
-            new_areas = []
-            for i in range(len(self.areas)):
-                if not self.areas[i].is_fixed():
-                    """ まだ分割が終わっていない領域に対して """
-                    if self.areas[i].number_of_points() > maxpoints:
-                        """ 領域に属すデータ点の数がmaxpoints個を超えていたら分割 """
-                        division = self.divide(self.areas[i],n+1)
-                        for d in division:
-                            new_areas.append(d)
-                    else:
-                        """ 領域に属すデータ点の数がmaxpoints個を超えていなかったらもう分割しない """
-                        self.areas[i].set_fixed()
-                        new_areas.append(self.areas[i])
-                else:
-                    """ 分割が終わっていればそのまま """
-                    new_areas.append(self.areas[i])
-            self.areas = new_areas
+    def divide(self, area, maxpoints, division_left):
+        """ 引数で与えられたdivision_left回だけ分割を繰り返す """
+        if division_left == 0 or area.number_of_points() <= maxpoints:
+            """ areaに含まれるデータ点の数がmaxpointsを超えていなければ分割終了 """
+            area.set_fixed(self.sequential_id)
+            self.leaves[self.sequential_id] = area
+            self.sequential_id += 1
+            return area
+        else:
+            """ areaに含まれるデータ点の数がmaxpointsを超えていれば四分割 """
+            next_level = self.subdivide(area)
+            """ 子エリアそれぞれを更に分割 """
+            for i in range(4):
+                child = self.divide(next_level[i],maxpoints,division_left-1)
+                area.set_child(i,child)
+            """ 分割後のエリアを返す """
+            return area
 
-        """ データ点がどのエリアにアサインされているかのインデックスを作る """
-        self.make_assign()
-
-    def make_assign(self):
-        for uid in self.data:
-            for i in range(len(self.areas)):
-                if self.areas[i].cover(data[uid]):
-                    break
-            self.assign[uid] = i
+    def get_area_id(self,p):
+        return self.root.covered(p)
 
 class Area:
-    def __init__(self,x1,y1,x2,y2,level):
+    def __init__(self,x1,y1,x2,y2):
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
-        self.level = level
         self.points_ = []
         self.fixed = False
+        """
+        0 2
+        1 3
+        """
+        self.children = [None,None,None,None]
 
     def append(self, p):
         """ 領域にデータ点を追加 """
@@ -100,9 +95,31 @@ class Area:
         """ 分割が終わっているかどうか """
         return self.fixed
 
-    def set_fixed(self):
+    def set_fixed(self,aid):
         """ 分割が終わったフラグを立てる """
         self.fixed = True
+        """ エリアにIDを付ける """
+        self.aid = aid
+
+    def set_child(self,n,area):
+        self.children[n] = area
+
+    def covered(self,p):
+        if self.cover(p):
+            if self.fixed:
+                return self.aid
+            else:
+                """ 子エリアのIDを計算 """
+                cid = 0
+                if self.x1 + (self.x2 - self.x1) / 2 < p[0]:
+                    """ Right """
+                    cid += 2
+                if self.y1 + (self.y2 - self.y1) / 2 < p[1]:
+                    """ Down """
+                    cid += 1
+                return self.children[cid].covered(p)
+        else:
+            return None
 
     def cover(self, p):
         """ あるデータ点pがこの領域にカバーされるかどうか """
@@ -112,13 +129,12 @@ class Area:
             return False
 
 def read_data(file_name):
-    data = {}
+    data = []
     for line in open(file_name, 'r'):
         entries = line.rstrip().split(' ')
-        uid = int(entries[0])
-        lat = float(entries[1])
-        lng = float(entries[2])
-        data[uid] = (lat,lng)
+        lat = float(entries[0])
+        lng = float(entries[1])
+        data.append((lat,lng))
     return data
 
 if __name__ == '__main__':
@@ -131,15 +147,12 @@ if __name__ == '__main__':
     data = read_data(sys.argv[7])
 
     """ 分割 """
-    qtree = Quadtree(data,x1,y1,x2,y2)
-    qtree.quadtree(maxpoints, maxdivision)
+    qtree = Quadtree(data,x1,y1,x2,y2,maxpoints,maxdivision)
 
     """ 結果 """
-    for a in qtree.areas:
-        print "%s %s %s %s" % (a.x1, a.y1, a.x2, a.y2),
-        for p in a.points():
-            print p,
-        print
+    for a in qtree:
+        print a.aid,a.x1,a.y1,a.x2,a.y2,a.points()
 
-    for uid in data:
-        print uid,qtree.covered(uid)
+    p = (0.37,0.55)
+    print p,qtree.get_area_id(p)
+
