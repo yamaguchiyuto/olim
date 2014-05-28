@@ -1,5 +1,6 @@
 import numpy
 import math
+import datetime
 from sklearn import mixture
 from lib.util import Util
 
@@ -156,7 +157,7 @@ class OLIM:
         """ fitting parameters """
         gmm = mixture.GMM(n_components = self.params['K'])
         gmm.fit(data)
-        
+
         """ return the model """
         return gmm
 
@@ -188,7 +189,7 @@ class OLIM:
             if self.window.count(w) == self.params['N']:
                 if self.kl.get(w) > dmin:
                     """ if kl value larger than threshold """
-                    if current_time - self.window.oldest_time[w] < self.params['window_th']:
+                    if current_time - self.window.oldest_time[w] < datetime.timedelta(self.params['window_th']):
                         """ if not too long window """
                         self.ud.update(user['id'], self.wd.get(w))
 
