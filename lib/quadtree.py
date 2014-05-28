@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
-
 class Quadtree:
     def __init__(self,data,x1,y1,x2,y2,maxpoints,maxdivision):
         self.data = data
@@ -128,16 +126,18 @@ class Area:
         else:
             return False
 
-def read_data(file_name):
-    data = []
-    for line in open(file_name, 'r'):
-        entries = line.rstrip().split(' ')
-        lat = float(entries[0])
-        lng = float(entries[1])
-        data.append((lat,lng))
-    return data
-
 if __name__ == '__main__':
+    import sys
+
+    def read_data(file_name):
+        data = []
+        for line in open(file_name, 'r'):
+            entries = line.rstrip().split(' ')
+            lat = float(entries[0])
+            lng = float(entries[1])
+            data.append((lat,lng))
+        return data
+
     x1 = float(sys.argv[1])
     y1 = float(sys.argv[2])
     x2 = float(sys.argv[3])
