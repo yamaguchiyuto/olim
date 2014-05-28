@@ -5,9 +5,10 @@ from lib.util import Util
 
 class Window:
     def __init__(self, N):
-        self.values = {}
+        self.values = {} # tuple (location,time) inside
         self.n = {}
         self.N = N
+        self.oldest_time = {}
 
     def count(self, w):
         if w in self.n:
@@ -15,16 +16,17 @@ class Window:
         else:
             return 0
 
-    def append(self, w, k):
+    def append(self, w, location, current_time):
         if w in self.values:
             if self.n[w] > self.N:
                 print 'window overflow'
                 exit()
-            self.values[w].append(k)
+            self.values[w].append((location,current_time))
             self.n[w] += 1
         else:
-            self.values[w] = [k]
+            self.values[w] = [(location,current_time)]
             self.n[w] = 1
+            self.oldest_time[w] = current_time
 
     def pop(self, w):
         if w in self.values:
@@ -32,6 +34,7 @@ class Window:
                 print 'window underflow'
                 exit()
             self.n[w] -= 1
+            self.oldest_time[w] = self.values[w][1][1]
             return self.values[w].pop(0)
         else:
             print 'window no such word to pop'
@@ -165,24 +168,29 @@ class OLIM:
             i += 1
         return population 
 
-    def updateKL(self, user, l, words):
+    def updateKL(self, user, user_location, current_time, words):
         for w in words:
-            self.window.append(w, l)
-            self.wd.inc(w, l)
+            """ append location and current time to the window """
+            self.window.append(w, user_location, current_time)
+            self.wd.inc(w, user_location)
             if self.window.count(w) == self.params['N']:
                 wd = self.wd.get(w)
                 self.kl.calc(w, wd)
             elif self.window.count(w) > self.params['N']:
-                pl = self.window.pop(w)
-                self.wd.dec(w, pl)
-                if l != pl:
-                   self.kl.update(w, l, pl, self.wd.get(w))
+                removed_location,oldest_time = self.window.pop(w)
+                self.wd.dec(w, removed_location)
+                if user_location != removed_location:
+                    """ If added location and removed location is not same """
+                    self.kl.update(w, user_location, removed_location, self.wd.get(w))
 
-    def updateUD(self, user, words, dmin):
+    def updateUD(self, user, words, current_time, dmin):
         for w in words:
             if self.window.count(w) == self.params['N']:
                 if self.kl.get(w) > dmin:
-                    self.ud.update(user['id'], self.wd.get(w))
+                    """ if kl value larger than threshold """
+                    if current_time - self.kl.oldest_time[w] < self.params['window_th']:
+                        """ if not too long window """
+                        self.ud.update(user['id'], self.wd.get(w))
 
     def infer(self, model):
         self.ud = UserDistribution(self.params['N'])
@@ -192,16 +200,17 @@ class OLIM:
         for tweet in self.tweets.stream():
             if type(tweet) == type({}) and 'timestamp' in tweet:
                 user = self.users.get(tweet['user_id'])
+                current_time = tweet['timestamp']
                 if user != None:
-                    cl = user['location'] # user who posts this tweet
+                    user_location = user['location'] # user who posts this tweet
                     words = set(Util.get_nouns(tweet['text'], self.params['lang'])) # words contained in this tweet
-                    if cl != None:
+                    if user_location != None:
                         """ labeled user """
-                        cl = str(model.predict([cl])[0])
-                        self.updateKL(user, cl, words)
+                        user_location = str(model.predict([user_location])[0])
+                        self.updateKL(user, user_location, current_time, words)
                     else:
                         """ unlabeled user """
-                        self.updateUD(user, words, self.params['dmin'])
+                        self.updateUD(user, words, current_time, self.params['dmin'])
 
         """ Location prediction using user distribution """
         for user in self.users.iter():
