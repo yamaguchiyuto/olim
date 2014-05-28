@@ -148,24 +148,22 @@ class OLIM:
 
     def geoPartitioning(self,params):
         """ make data """
-        data = {}
+        data = []
         for u in self.users.iter():
             if u['location'] != None:
-                data[u['id']] = u['location']
+                data.append(u['location'])
 
         """ partition """
-        qtree = Quadtree(data,params['x1'],params['y1'],params['x2'],params['y2'])
-        qtree.quadtree(params['maxpoints'],params['maxdivision'])
+        qtree = Quadtree(data,params['x1'],params['y1'],params['x2'],params['y2'],params['maxpoints'],params['maxdivision'])
 
         """ return the areas """
         return qtree
 
     def make_population(self, qtree):
         population = {}
-        i = 0
-        for i in range(len(qtree.areas)):
-            population[i] = float(qtree.areas[i].number_of_points) / self.number_of_users()
-            i += 1
+        for a in qtree:
+            i = a.aid
+            population[i] = float(a.number_of_points) / self.number_of_users()
         return population
 
     def updateKL(self, user, l, words):
@@ -200,8 +198,7 @@ class OLIM:
                     words = set(Util.get_nouns(tweet['text'], self.params['lang'])) # words contained in this tweet
                     if cl != None:
                         """ labeled user """
-                        cl = str(model.predict([cl])[0])
-                        self.updateKL(user, cl, words)
+                        self.updateKL(user, qtree.get_area_id(cl), words)
                     else:
                         """ unlabeled user """
                         self.updateUD(user, words, self.params['dmin'])
@@ -213,12 +210,12 @@ class OLIM:
                 ud = self.ud.get(user['id'])
                 if ud != None:
                     """ at least one observation """
-                    inferred_location_number = self.predict(ud, model)
-                    inferred_location_coordinates = model.means_[inferred_location_number]
+                    inferred_location_number = self.predict(ud)
+                    inferred_location_coordinates = self.leaves[inferred_location_number].center
                     user['location'] = inferred_location_coordinates
 
-    def predict(self, ud, model):
-        B = numpy.array(model.weights_)
+    def predict(self, ud):
+        B = numpy.array(self.population)
         for k in ud:
             B[int(k)] += ud[k]
         return B.argmax()
