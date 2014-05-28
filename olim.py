@@ -1,6 +1,6 @@
 import numpy
 import math
-from sklearn import mixture
+from lib.quadtree import *
 from lib.util import Util
 
 class Window:
@@ -47,7 +47,7 @@ class WordDistribution:
             return self.values[w]
         else:
             return None
-    
+
     def inc(self,w,l):
         if w in self.values:
             if l in self.values[w]:
@@ -143,7 +143,7 @@ class OLIM:
         self.tweets = tweets
         self.params = params
 
-    def geoPartitioning(self):
+    def geoPartitioning(self,x1,y1,x2,y2,maxpoints,maxdivision):
         """ make data """
         data = []
         for u in self.users.iter():
@@ -151,11 +151,11 @@ class OLIM:
                 data.append(u['location'])
 
         """ fitting parameters """
-        gmm = mixture.GMM(n_components = self.params['K'])
-        gmm.fit(data)
-        
+        initial_area = Area(x1,y1,x2,y2,0)
+        areas = quadtree(data,initial_area,maxpoints,maxdivision)
+
         """ return the model """
-        return gmm
+        return areas
 
     def make_population(self, weights):
         population = {}

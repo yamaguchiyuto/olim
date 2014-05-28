@@ -86,34 +86,30 @@ def quadtree(data, initial, maxpoints, maxdivision):
 def read_data(file_name):
     data = []
     for line in open(file_name, 'r'):
-        p = tuple([float(v) for v in line.rstrip().split(' ')])[1:]
+        p = tuple([float(v) for v in line.rstrip().split(' ')])
         data.append(p)
     return data
 
-x1 = float(sys.argv[1])
-y1 = float(sys.argv[2])
-x2 = float(sys.argv[3])
-y2 = float(sys.argv[4])
-maxpoints = int(sys.argv[5])
-maxdivision = int(sys.argv[6])
-data = read_data(sys.argv[7])
+if __name__ == '__main__':
+    x1 = float(sys.argv[1])
+    y1 = float(sys.argv[2])
+    x2 = float(sys.argv[3])
+    y2 = float(sys.argv[4])
+    maxpoints = int(sys.argv[5])
+    maxdivision = int(sys.argv[6])
+    data = read_data(sys.argv[7])
 
-""" 対象とする領域を生成 """
-initial = Area(x1,y1,x2,y2,0)
-for d in data:
-    initial.append(d)
+    """ 対象とする領域を生成 """
+    initial = Area(x1,y1,x2,y2,0)
+    for d in data:
+        initial.append(d)
 
-""" 分割 """
-qtree = quadtree(data, initial, maxpoints, maxdivision)
-print len(qtree)
+    """ 分割 """
+    qtree = quadtree(data, initial, maxpoints, maxdivision)
 
-for line in open(sys.argv[7]):
-    uid , lat, lng = line.rstrip().split(' ')
-    p = (float(lat), float(lng))
-    i = 0
+    """ 結果 """
     for a in qtree:
-
-        if a.cover(p):
-            print uid,i,a.x1,a.y1,a.x2,a.y2
-        else:
-            i += 1
+        print "%s %s %s %s" % (a.x1, a.y1, a.x2, a.y2),
+        for p in a.points():
+            print p,
+        print
