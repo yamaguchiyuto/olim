@@ -73,6 +73,7 @@ class Area:
         self.y2 = y2
         self.points_ = []
         self.fixed = False
+        self.center = None
         """
         0 2
         1 3
