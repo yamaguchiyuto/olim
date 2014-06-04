@@ -164,7 +164,7 @@ class OLIM:
         for a in qtree:
             i = a.aid
             population[i] = float(a.number_of_points()) / self.number_of_users()
-        return population
+        self.population = population
 
     def updateKL(self, user, l, words):
         for w in words:
@@ -189,7 +189,7 @@ class OLIM:
         self.ud = UserDistribution(self.params['N'])
         self.wd = WordDistribution(self.params['N'])
         self.window = Window(self.params['N'])
-        self.kl = KL(params['N'], self.make_population(qtree))
+        self.kl = KL(params['N'], self.population)
         for tweet in self.tweets.stream():
             if type(tweet) == type({}) and 'timestamp' in tweet:
                 user = self.users.get(tweet['user_id'])
@@ -264,6 +264,7 @@ if __name__ == '__main__':
 
     """ quadtree partitioning """
     qtree = olim.geoPartitioning(params)
+    olim.make_population(params)
 
     """ infer """
     olim.infer(qtree)
