@@ -189,8 +189,10 @@ class OLIM:
             if self.window.count(w) == self.params['N']:
                 if self.kl.get(w) > dmin:
                     """ if kl value larger than threshold """
-                    if current_time - self.window.oldest_time[w] < datetime.timedelta(seconds=self.params['window_th']):
+                    oldest_time = self.window.oldest_time[w]
+                    if current_time - oldest_time < datetime.timedelta(seconds=self.params['window_th']):
                         """ if not too long window """
+                        print w,current_time,oldest_time,current_time-oldest_time,self.kl.get(w)
                         self.ud.update(user['id'], self.wd.get(w))
 
     def infer(self, model):

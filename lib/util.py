@@ -7,6 +7,7 @@ import nltk
 
 class Util:
     tagger = MeCab.Tagger('-Ochasen')
+    stopwords = set(['COMMA','RT'])
 
     @classmethod
     def remove_usernames_and_urls(self, text):
@@ -35,9 +36,9 @@ class Util:
 
     @classmethod
     def get_nouns_en(self, text_str):
-        text = nltk.word_tokenize(text_str)
+        text = nltk.word_tokenize(self.remove_usernames_and_urls(text_str))
         result = nltk.tag.pos_tag(text)
-        nouns = [r[0]  for r in result if r[1] in {'NNP', 'NNPS'}]
+        nouns = [r[0]  for r in result if r[1] in {'NN', 'NNP', 'NNPS', 'NNS'} and len(r[0]) > 1 and not r[0] in self.stopwords]
         return nouns
 
 
