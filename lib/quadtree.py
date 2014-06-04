@@ -49,6 +49,7 @@ class Quadtree:
             """ areaに含まれるデータ点の数がmaxpointsを超えていなければ分割終了 """
             area.set_fixed(self.sequential_id)
             area.calc_center() # areaに属すデータ点のセントロイドを計算
+            area.set_id(self.sequential_id)
             self.leaves[self.sequential_id] = area
             self.sequential_id += 1
             return area
@@ -110,6 +111,9 @@ class Area:
         """ 分割が終わったフラグを立てる """
         self.fixed = True
         """ エリアにIDを付ける """
+        self.aid = aid
+
+    def set_id(self,aid):
         self.aid = aid
 
     def set_child(self,n,area):
