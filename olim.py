@@ -198,7 +198,9 @@ class OLIM:
                     words = set(Util.get_nouns(tweet['text'], self.params['lang'])) # words contained in this tweet
                     if cl != None:
                         """ labeled user """
-                        self.updateKL(user, qtree.get_area_id(cl), words)
+                        aid = qtree.get_area_id(cl)
+                        if aid != None:
+                            self.updateKL(user, qtree.get_area_id(cl), words)
                     else:
                         """ unlabeled user """
                         self.updateUD(user, words, self.params['dmin'])
