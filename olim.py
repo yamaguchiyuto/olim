@@ -264,7 +264,7 @@ if __name__ == '__main__':
 
     """ quadtree partitioning """
     qtree = olim.geoPartitioning(params)
-    olim.make_population(params)
+    olim.make_population(qtree)
 
     """ infer """
     olim.infer(qtree)
