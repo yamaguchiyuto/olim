@@ -247,8 +247,8 @@ if __name__ == '__main__':
             if v['location'] != None:
                 print Util.hubeny_distance(v['location'], u['location'])
 
-    if len(sys.argv) < 7:
-        print '[usage]: python %s [training set] [test set] [params] [db user name] [db pass] [db name]' % sys.argv[0]
+    if len(sys.argv) < 8:
+        print '[usage]: python %s [training set] [test set] [params] [db user name] [db pass] [db name] [model file]' % sys.argv[0]
         exit()
 
     training = Users()
@@ -264,7 +264,16 @@ if __name__ == '__main__':
     olim = OLIM(training, tweets, params)
 
     """ quadtree partitioning """
-    qtree = olim.geoPartitioning(params)
+    if os.path.exists(sys.argv[7]):
+        f = open(sys.argv[7])
+        qtree = pickle.load(f)
+        f.close()
+    else:
+        qtree = olim.geoPartitioning(params)
+        f = open(sys.argv[7], 'w')
+        pickle.dump(qtree,f)
+        f.close()
+
     olim.make_population(qtree)
 
     """ infer """
