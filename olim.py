@@ -142,6 +142,7 @@ class OLIM:
         self.users = users
         self.tweets = tweets
         self.params = params
+        self.population = None
 
     def number_of_users(self):
         return len(self.users)

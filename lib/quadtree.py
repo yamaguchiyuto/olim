@@ -49,9 +49,10 @@ class Quadtree:
             """ areaに含まれるデータ点の数がmaxpointsを超えていなければ分割終了 """
             area.set_fixed(self.sequential_id)
             area.calc_center() # areaに属すデータ点のセントロイドを計算
-            area.set_id(self.sequential_id)
-            self.leaves[self.sequential_id] = area
-            self.sequential_id += 1
+            if area.number_of_points() > 0:
+                area.set_id(self.sequential_id)
+                self.leaves[self.sequential_id] = area
+                self.sequential_id += 1
             return area
         else:
             """ areaに含まれるデータ点の数がmaxpointsを超えていれば四分割 """
