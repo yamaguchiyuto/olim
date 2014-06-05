@@ -214,7 +214,7 @@ class OLIM:
                 if ud != None:
                     """ at least one observation """
                     inferred_location_number = self.predict(ud)
-                    inferred_location_coordinates = self.leaves[inferred_location_number].center
+                    inferred_location_coordinates = qtree.leaves[inferred_location_number].center
                     user['location'] = inferred_location_coordinates
 
     def predict(self, ud):
