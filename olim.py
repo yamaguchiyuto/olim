@@ -218,10 +218,10 @@ class OLIM:
                     user['location'] = inferred_location_coordinates
 
     def predict(self, ud):
-        B = numpy.array(self.population)
+        B = self.population.copy()
         for k in ud:
             B[int(k)] += ud[k]
-        return B.argmax()
+        return max(B.items(), key=lambda x:x[1])[0]
 
     def get_users(self):
         return self.users
