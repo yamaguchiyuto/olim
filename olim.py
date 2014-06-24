@@ -1,6 +1,6 @@
 import numpy
 import math
-from sklearn import mixture
+from lib.quadtree import Quadtree
 from lib.util import Util
 
 class Window:
@@ -47,7 +47,7 @@ class WordDistribution:
             return self.values[w]
         else:
             return None
-    
+
     def inc(self,w,l):
         if w in self.values:
             if l in self.values[w]:
@@ -142,28 +142,30 @@ class OLIM:
         self.users = users
         self.tweets = tweets
         self.params = params
+        self.population = None
 
-    def geoPartitioning(self):
+    def number_of_users(self):
+        return len(self.users)
+
+    def geoPartitioning(self,params):
         """ make data """
         data = []
         for u in self.users.iter():
             if u['location'] != None:
                 data.append(u['location'])
 
-        """ fitting parameters """
-        gmm = mixture.GMM(n_components = self.params['K'])
-        gmm.fit(data)
-        
-        """ return the model """
-        return gmm
+        """ partition """
+        qtree = Quadtree(data,params['x1'],params['y1'],params['x2'],params['y2'],params['maxpoints'],params['maxdivision'])
 
-    def make_population(self, weights):
+        """ return the areas """
+        return qtree
+
+    def make_population(self, qtree):
         population = {}
-        i = 0
-        for v in weights:
-            population[str(i)] = v
-            i += 1
-        return population 
+        for a in qtree:
+            i = a.aid
+            population[i] = float(a.number_of_points()) / self.number_of_users()
+        self.population = population
 
     def updateKL(self, user, l, words):
         for w in words:
@@ -184,11 +186,11 @@ class OLIM:
                 if self.kl.get(w) > dmin:
                     self.ud.update(user['id'], self.wd.get(w))
 
-    def infer(self, model):
+    def infer(self, qtree):
         self.ud = UserDistribution(self.params['N'])
         self.wd = WordDistribution(self.params['N'])
         self.window = Window(self.params['N'])
-        self.kl = KL(params['N'], self.make_population(model.weights_))
+        self.kl = KL(params['N'], self.population)
         for tweet in self.tweets.stream():
             if type(tweet) == type({}) and 'timestamp' in tweet:
                 user = self.users.get(tweet['user_id'])
@@ -197,8 +199,9 @@ class OLIM:
                     words = set(Util.get_nouns(tweet['text'], self.params['lang'])) # words contained in this tweet
                     if cl != None:
                         """ labeled user """
-                        cl = str(model.predict([cl])[0])
-                        self.updateKL(user, cl, words)
+                        aid = qtree.get_area_id(cl)
+                        if aid != None:
+                            self.updateKL(user, qtree.get_area_id(cl), words)
                     else:
                         """ unlabeled user """
                         self.updateUD(user, words, self.params['dmin'])
@@ -210,15 +213,15 @@ class OLIM:
                 ud = self.ud.get(user['id'])
                 if ud != None:
                     """ at least one observation """
-                    inferred_location_number = self.predict(ud, model)
-                    inferred_location_coordinates = model.means_[inferred_location_number]
+                    inferred_location_number = self.predict(ud)
+                    inferred_location_coordinates = qtree.leaves[inferred_location_number].center
                     user['location'] = inferred_location_coordinates
 
-    def predict(self, ud, model):
-        B = numpy.array(model.weights_)
+    def predict(self, ud):
+        B = self.population.copy()
         for k in ud:
             B[int(k)] += ud[k]
-        return B.argmax()
+        return max(B.items(), key=lambda x:x[1])[0]
 
     def get_users(self):
         return self.users
@@ -227,6 +230,7 @@ if __name__ == '__main__':
     import sys
     import pickle
     import json
+    import os
     from lib.db import DB
     from lib.users import Users
     from lib.tweets_db import Tweets
@@ -244,8 +248,7 @@ if __name__ == '__main__':
                 print Util.hubeny_distance(v['location'], u['location'])
 
     if len(sys.argv) < 8:
-        print '[usage]: python %s [training set] [test set] [params] [db user name] [db pass] [db name] [model]' % sys.argv[0]
-        print 'Specify model file even if there does not exist, to save the geoPartitioning result.'
+        print '[usage]: python %s [training set] [test set] [params] [db user name] [db pass] [db name] [model file]' % sys.argv[0]
         exit()
 
     training = Users()
@@ -260,17 +263,22 @@ if __name__ == '__main__':
 
     olim = OLIM(training, tweets, params)
 
-    try:
-        f = open(sys.argv[7], 'r')
-    except IOError:
-        model = olim.geoPartitioning()
-        f = open(sys.argv[7], 'w')
-        pickle.dump(model, f)
+    """ quadtree partitioning """
+    if os.path.exists(sys.argv[7]):
+        f = open(sys.argv[7])
+        qtree = pickle.load(f)
         f.close()
     else:
-        model = pickle.load(f)
+        qtree = olim.geoPartitioning(params)
+        f = open(sys.argv[7], 'w')
+        pickle.dump(qtree,f)
         f.close()
 
-    olim.infer(model)
+    olim.make_population(qtree)
+
+    """ infer """
+    olim.infer(qtree)
     inferred = olim.get_users()
+
+    """ evaluate """
     evaluate(inferred, test)
