@@ -125,21 +125,6 @@ Users in this file are different from those in `test.5.json`.
 {"location": [39.72, 140.103], "id": 183500840}
 ```
 
-## Graph
-
-### `graph.json`
-
-Follow relationships among all users in `users.json`.
-
-```bash
-> wc data/graph.json
- 201570  34214067 361562939 graph.json
-
-> head -n2 data/graph.json
-{"src_id": 15204353, "dst_ids": [3874831, …, 620772247]}
-{"src_id": 215657131, "dst_ids": [9995652, …, 211604661]}
-```
-
 ## Tweet
 
 Unfortunatelly, Twitter does not allow us to share the data of tweets. So we suggest you to collect the latest 200 tweets of users in `users.json`.

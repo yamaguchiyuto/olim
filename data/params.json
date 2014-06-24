@@ -7,6 +7,5 @@
 "x2": 46.0,
 "y2": 150.0,
 "maxpoints": 2000,
-"maxdivision": 10,
-"K": 100
+"maxdivision": 10
 }
