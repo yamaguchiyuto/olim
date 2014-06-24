@@ -26,7 +26,7 @@ Output lines of error distances.
 
 ```bash
 > cat data/params.json
-{"dmin": 1.0, "N": 400, "lang": "ja", "K": 100}
+{"dmin": 1.0, "N": 400, "lang": "ja", "maxpoints": 2000, "maxdivision": 10}
 ```
 
 # Data
